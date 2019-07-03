@@ -2,6 +2,10 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-android'
 
+//upload to bintray
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.dcendents.android-maven'
+
 android {
     compileSdkVersion 28
 
@@ -42,3 +46,36 @@ dependencies {
 repositories {
     mavenCentral()
 }
+
+//发布jcenter    gradlew clean build install bintrayUpload
+ext {
+    bintrayRepo = 'android-libraries' // the repository name in Bintray dashboard
+    bintrayName = 'video' // the package name of the bintray repository
+    libraryName = 'video'// the module name in android studio project
+
+    publishedGroupId = 'com.adazhdw' // the id you want to add in "implement" line
+    artifact = 'video' // = libraryName  the id you want to add in "implement" line--must be the module name in android project
+    libraryVersion = '0.1.0'
+
+    libraryDescription = 'organize code'
+    siteUrl = 'https://github.com/adazhdw/GzPlayer'
+    gitUrl = 'https://github.com/adazhdw/GzPlayer.git'
+    developerId = 'adazhdw1207'
+    developerName = 'Lucas Da'
+    developerEmail = 'adazhdw1207@gmail.com'
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+}
+/**
+ * These lines will download the gradle tasks for uploading on bintray from the specified URLs.
+ * Add these lines to publish library to bintray, This is the readymade scripts made by github user nuunoeoi to
+ * make uploading to bintray easy,place it at the end of the file
+ */
+if (project.rootProject.file('local.properties').exists()) {
+//    apply from: 'https://raw.githubusercontent.com/numetriclabz/jcenter/master/installv.gradle'
+//    apply from: 'https://raw.githubusercontent.com/numetriclabz/jcenter/master/bintrayv.gradle'
+    apply from: 'installv.gradle'
+    apply from: 'bintrayv.gradle'
+}
+

@@ -12,6 +12,8 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1' // Add this line JitPack
     }
 }
 
@@ -19,7 +21,23 @@ allprojects {
     repositories {
         google()
         jcenter()
+        maven { url "https://jitpack.io" }
+        maven {url 'https://dl.bintray.com/jetbrains/anko' }
         
+    }
+}
+
+//publish jcenter
+//add to encode mode
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+//resolve > Task :javadoc FAILED
+//javadoc: 错误 — 非法的程序包名称:,一般是因为kotlin打包时不能直接转成java代码的原因
+subprojects {
+    tasks.withType(Javadoc).all {
+        enabled = false
     }
 }
 
