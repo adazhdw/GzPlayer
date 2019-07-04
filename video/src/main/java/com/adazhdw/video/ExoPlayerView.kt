@@ -33,6 +33,7 @@ import com.google.android.exoplayer2.video.VideoListener
 import java.util.*
 
 class ExoPlayerView : FrameLayout {
+
     private val TIME_UNSET = java.lang.Long.MIN_VALUE + 1
     private val TAG = "ExoPlayerView"
     private val mExoPlayer: SimpleExoPlayer
@@ -246,12 +247,6 @@ class ExoPlayerView : FrameLayout {
         }
     }
 
-    /**
-     * 获取海报ImageView
-     */
-    fun getPoster(): ImageView {
-        return mExoPost
-    }
     /**
      * 进度条更新Runnable
      */
