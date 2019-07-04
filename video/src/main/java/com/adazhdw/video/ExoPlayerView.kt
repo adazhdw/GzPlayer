@@ -33,7 +33,6 @@ import com.google.android.exoplayer2.video.VideoListener
 import java.util.*
 
 class ExoPlayerView : FrameLayout {
-
     private val TIME_UNSET = java.lang.Long.MIN_VALUE + 1
     private val TAG = "ExoPlayerView"
     private val mExoPlayer: SimpleExoPlayer
@@ -51,6 +50,7 @@ class ExoPlayerView : FrameLayout {
     private val mFormatter: Formatter
     private val mExoControlDispatcher: ExoControlDispatcher
     private val mHandler: Handler = Handler(Looper.getMainLooper())
+    private var isSetUped = false
 
     constructor(@NonNull context: Context) : this(context, null)
     constructor(@NonNull context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -110,7 +110,7 @@ class ExoPlayerView : FrameLayout {
             override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
                 when (playbackState) {
                     Player.STATE_ENDED -> {
-                        onPauseState()
+                        seekToStart()
                     }
                 }
             }
@@ -130,35 +130,31 @@ class ExoPlayerView : FrameLayout {
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                pause()
-                onPauseState()
+                pausePlay()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 startPlay()
-                onPlayState()
             }
         })
         startIv.setOnClickListener {
             if (isPlaying()) {
-                pause()
-                onPauseState()
+                pausePlay()
             } else {
                 startPlay()
-                onPlayState()
                 startHideControl()
             }
         }
         mVideoViewRoot.setOnClickListener {
-
-            if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
-                showControlView(false)
-            } else {
-                showControlView()
-                startHideControl()
+            if (isSetUped) {
+                if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
+                    showControlView(false)
+                } else {
+                    showControlView()
+                    startHideControl()
+                }
             }
         }
-        onPauseState()
     }
 
     fun setDataSource(path: String?, isAutoPlay: Boolean = false) {
@@ -166,15 +162,7 @@ class ExoPlayerView : FrameLayout {
         loadingBar.visibility = View.VISIBLE
         loadingBar.show()
         mExoPlayer.setUp(context, path, isAutoPlay)
-    }
-
-    fun getPoster(): ImageView {
-        return mExoPost
-    }
-
-    private fun seekTo(progress: Long) {
-        mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, progress)
-        setVideoProgress()
+        isSetUped = true
     }
 
     private fun startPlay() {
@@ -182,30 +170,42 @@ class ExoPlayerView : FrameLayout {
             mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, TIME_UNSET)
         }
         mExoPost.visibility = View.GONE
+        startIv.setImageResource(R.drawable.ic_player_pause)
         mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, true)
         setVideoProgress()
         startProgressRunnable()
     }
 
-    private fun pause() {
+    private fun pausePlay() {
         mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, false)
-        removeCallbacks(mProgressRunnable)
-    }
-
-    private fun onPlayState() {
-        startIv.setImageResource(R.drawable.ic_player_pause)
-        startProgressRunnable()
-    }
-
-    private fun onPauseState() {
         startIv.setImageResource(R.drawable.ic_player_start)
-        removeCallbacks(mProgressRunnable)
+        mHandler.removeCallbacks(mDismissRunnable)
+        mHandler.removeCallbacks(mProgressRunnable)
     }
 
     fun release() {
         mExoPlayer.release()
         mHandler.removeCallbacks(mDismissRunnable)
         mHandler.removeCallbacks(mProgressRunnable)
+    }
+
+    private fun seekTo(progress: Long) {
+        mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, progress)
+        setVideoProgress()
+    }
+
+    /**
+     * 强制Seek到播放开始状态，以便重新开始播放
+     */
+    private fun seekToStart() {
+        mHandler.postDelayed({
+            pausePlay()
+            mExoControlDispatcher.dispatchSeekTo(
+                mExoPlayer,
+                mExoPlayer.currentWindowIndex,
+                TIME_UNSET
+            )
+        }, 1000)
     }
 
     /**
@@ -228,6 +228,9 @@ class ExoPlayerView : FrameLayout {
         mSeekBar.progress = (currentPosition / 1000).toInt()
     }
 
+    /**
+     * 格式化时间进度
+     */
     private fun stringForTime(timeMs: Long): String {
         val totalSeconds = timeMs / 1000
 
@@ -243,6 +246,12 @@ class ExoPlayerView : FrameLayout {
         }
     }
 
+    /**
+     * 获取海报ImageView
+     */
+    fun getPoster(): ImageView {
+        return mExoPost
+    }
     /**
      * 进度条更新Runnable
      */
@@ -325,9 +334,9 @@ class ExoPlayerView : FrameLayout {
         prepare(mediaSource)
         playWhenReady = autoPlay
         if (autoPlay) {
-            onPlayState()
+            startPlay()
         } else {
-            onPauseState()
+            pausePlay()
         }
     }
 
@@ -341,6 +350,9 @@ class ExoPlayerView : FrameLayout {
         }
     }
 
+    /**
+     * 处理播放器错误
+     */
     private fun handleError(error: ExoPlaybackException) {
         when (error.type) {
             ExoPlaybackException.TYPE_SOURCE -> {
