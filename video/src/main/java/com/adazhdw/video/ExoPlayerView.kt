@@ -1,5 +1,6 @@
 package com.adazhdw.video
 
+import android.Manifest
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Matrix
@@ -17,6 +18,7 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.NonNull
+import androidx.annotation.RequiresPermission
 import androidx.core.widget.ContentLoadingProgressBar
 import com.example.utiltest.widget.exo.ExoControlDispatcher
 import com.google.android.exoplayer2.*
@@ -158,6 +160,7 @@ class ExoPlayerView : FrameLayout {
         }
     }
 
+    @RequiresPermission(Manifest.permission.INTERNET)
     fun setDataSource(path: String?, isAutoPlay: Boolean = false) {
         if (path.isNullOrBlank()) return
         loadingBar.visibility = View.VISIBLE

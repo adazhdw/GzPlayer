@@ -34,7 +34,7 @@ dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation "androidx.core:core-ktx:1.0.2"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     //Player
     implementation 'com.google.android.exoplayer:exoplayer:2.10.2'
@@ -55,9 +55,9 @@ ext {
 
     publishedGroupId = 'com.adazhdw' // the id you want to add in "implement" line
     artifact = 'video' // = libraryName  the id you want to add in "implement" line--must be the module name in android project
-    libraryVersion = '0.2.1'
+    libraryVersion = '0.2.2'
 
-    libraryDescription = 'test bugs'
+    libraryDescription = 'fix network permission bugs'
     siteUrl = 'https://github.com/adazhdw/GzPlayer'
     gitUrl = 'https://github.com/adazhdw/GzPlayer.git'
     developerId = 'adazhdw1207'
