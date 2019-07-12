@@ -7,11 +7,11 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
     private val videoUrl = "https://file.yizhujiao.com/o_1cm4d1a1t1uicke618cb4k39013.mp4"
+    private val videoUrl2 = "https://courseware.uuabc.com/courseware_centent_1561864858147"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-        mExoPlayerView.setDataSource(videoUrl)
+        mExoPlayerView.setDataSource(videoUrl2)
     }
 }

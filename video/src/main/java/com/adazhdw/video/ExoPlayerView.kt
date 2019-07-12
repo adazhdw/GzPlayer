@@ -20,13 +20,9 @@ import android.widget.TextView
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresPermission
 import androidx.core.widget.ContentLoadingProgressBar
-import com.example.utiltest.widget.exo.ExoControlDispatcher
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.source.dash.DashMediaSource
-import com.google.android.exoplayer2.source.hls.HlsMediaSource
-import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
@@ -340,9 +336,9 @@ class ExoPlayerView : FrameLayout {
 
     private fun buildMediaSource(uri: Uri, dataSourceFactory: DataSource.Factory): MediaSource {
         return when (val type = Util.inferContentType(uri)) {
-            C.TYPE_DASH -> DashMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
-            C.TYPE_SS -> SsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
-            C.TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+//            C.TYPE_DASH -> DashMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+//            C.TYPE_SS -> SsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+//            C.TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
             C.TYPE_OTHER -> ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
             else -> throw IllegalStateException("Unsupported type: $type")
         }
