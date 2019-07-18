@@ -1,5 +1,6 @@
 package com.adazhdw.video
 
+import android.Manifest
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Matrix
@@ -17,17 +18,14 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.NonNull
+import androidx.annotation.RequiresPermission
 import androidx.core.widget.ContentLoadingProgressBar
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import com.example.utiltest.widget.exo.ExoControlDispatcher
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.source.dash.DashMediaSource
-import com.google.android.exoplayer2.source.hls.HlsMediaSource
-import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
@@ -54,6 +52,7 @@ class ExoPlayerView : FrameLayout {
     private val mFormatter: Formatter
     private val mExoControlDispatcher: ExoControlDispatcher
     private val mHandler: Handler = Handler(Looper.getMainLooper())
+    private var isSetUped = false
 
     constructor(@NonNull context: Context) : this(context, null)
     constructor(@NonNull context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -113,7 +112,6 @@ class ExoPlayerView : FrameLayout {
             override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
                 when (playbackState) {
                     Player.STATE_ENDED -> {
-                        pause()
                         seekToStart()
                     }
                 }
@@ -134,7 +132,7 @@ class ExoPlayerView : FrameLayout {
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                pause()
+                pausePlay()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
@@ -143,32 +141,36 @@ class ExoPlayerView : FrameLayout {
         })
         startIv.setOnClickListener {
             if (isPlaying()) {
-                pause()
+                pausePlay()
             } else {
                 startPlay()
                 startHideControl()
             }
         }
-        this.setOnClickListener {
-            if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
-                showControlView(false)
-            } else {
-                showControlView()
-                startHideControl()
+        mVideoViewRoot.setOnClickListener {
+            if (isSetUped) {
+                if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
+                    showControlView(false)
+                } else {
+                    showControlView()
+                    startHideControl()
+                }
             }
         }
     }
 
-    fun setDataSource(path: String?,isAutoPlay: Boolean = false, lifecycle: Lifecycle? = null, errorListener: ((errorType: Int) -> Unit)?=null) {
+    @RequiresPermission(Manifest.permission.INTERNET)
+    fun setDataSource(path: String?, isAutoPlay: Boolean = false, lifecycle: Lifecycle? = null, errorListener: ((errorType: Int) -> Unit)?=null) {
         if (path.isNullOrBlank()) return
         loadingBar.visibility = View.VISIBLE
         loadingBar.show()
         mExoPlayer.setUp(context, path, isAutoPlay)
+        isSetUped = true
         this.errorListener = errorListener
         lifecycle?.addObserver(object : LifecycleObserver {
             @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
             fun onPause() {
-                this@ExoPlayerView.pause()
+                this@ExoPlayerView.pausePlay()
             }
 
             @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -178,12 +180,7 @@ class ExoPlayerView : FrameLayout {
         })
     }
 
-    private fun seekTo(progress: Long) {
-        mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, progress)
-        setVideoProgress()
-    }
-
-    fun startPlay() {
+    private fun startPlay() {
         if (mExoPlayer.playbackState == Player.STATE_ENDED) {
             mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, TIME_UNSET)
         }
@@ -192,12 +189,11 @@ class ExoPlayerView : FrameLayout {
         mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, true)
         setVideoProgress()
         startProgressRunnable()
-        startHideControl()
     }
 
-    fun pause() {
-        startIv.setImageResource(R.drawable.ic_player_start)
+    private fun pausePlay() {
         mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, false)
+        startIv.setImageResource(R.drawable.ic_player_start)
         mHandler.removeCallbacks(mDismissRunnable)
         mHandler.removeCallbacks(mProgressRunnable)
     }
@@ -208,17 +204,32 @@ class ExoPlayerView : FrameLayout {
         mHandler.removeCallbacks(mProgressRunnable)
     }
 
+    fun getPoster():ImageView{
+        return mExoPost
+    }
+    private fun seekTo(progress: Long) {
+        mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, progress)
+        setVideoProgress()
+    }
+
     /**
-     * 强制把播放器重置为0进度
+     * 强制Seek到播放开始状态，以便重新开始播放
      */
     private fun seekToStart() {
-        mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, TIME_UNSET)
+        mHandler.postDelayed({
+            pausePlay()
+            mExoControlDispatcher.dispatchSeekTo(
+                mExoPlayer,
+                mExoPlayer.currentWindowIndex,
+                TIME_UNSET
+            )
+        }, 1000)
     }
 
     /**
      * 判断是否正在播放
      */
-    fun isPlaying(): Boolean {
+    private fun isPlaying(): Boolean {
         return mExoPlayer.playbackState != Player.STATE_ENDED
                 && mExoPlayer.playbackState != Player.STATE_IDLE
                 && mExoPlayer.playWhenReady
@@ -235,6 +246,9 @@ class ExoPlayerView : FrameLayout {
         mSeekBar.progress = (currentPosition / 1000).toInt()
     }
 
+    /**
+     * 格式化时间进度
+     */
     private fun stringForTime(timeMs: Long): String {
         val totalSeconds = timeMs / 1000
 
@@ -291,8 +305,8 @@ class ExoPlayerView : FrameLayout {
     ) {
         val aspectRatio =
             if (videoHeight == 0 || videoWidth == 0) 1f else videoWidth.toFloat() * pixelWidthHeightRatio / videoHeight
-        //设置TextureView Layout 宽高
         applyTextureViewRotation(mExoTextureView, unappliedRotationDegrees)
+        //设置TextureView Layout 宽高
         mVideoViewRoot.setAspectRatio(aspectRatio)
     }
 
@@ -334,20 +348,23 @@ class ExoPlayerView : FrameLayout {
         if (autoPlay) {
             startPlay()
         } else {
-            pause()
+            pausePlay()
         }
     }
 
     private fun buildMediaSource(uri: Uri, dataSourceFactory: DataSource.Factory): MediaSource {
         return when (val type = Util.inferContentType(uri)) {
-            C.TYPE_DASH -> DashMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
-            C.TYPE_SS -> SsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
-            C.TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+//            C.TYPE_DASH -> DashMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+//            C.TYPE_SS -> SsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
+//            C.TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
             C.TYPE_OTHER -> ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(uri)
             else -> throw IllegalStateException("Unsupported type: $type")
         }
     }
 
+    /**
+     * 处理播放器错误
+     */
     private var isVideoError = false
     private var errorListener: ((errorType: Int) -> Unit)? = null
     private fun handleError(error: ExoPlaybackException) {

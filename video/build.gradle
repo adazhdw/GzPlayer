@@ -33,15 +33,18 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation "androidx.core:core-ktx:1.0.2"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     //Player
-    implementation 'com.google.android.exoplayer:exoplayer:2.10.2'
+//    implementation 'com.google.android.exoplayer:exoplayer:2.10.2'
+    //ExoPlayer
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.10.2'
+    implementation 'com.google.android.exoplayer:exoplayer-ui:2.10.2'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-    implementation "androidx.core:core-ktx:1.0.2"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
 repositories {
     mavenCentral()
@@ -55,9 +58,9 @@ ext {
 
     publishedGroupId = 'com.adazhdw' // the id you want to add in "implement" line
     artifact = 'video' // = libraryName  the id you want to add in "implement" line--must be the module name in android project
-    libraryVersion = '0.1.1'
+    libraryVersion = '0.2.5'
 
-    libraryDescription = 'add lifeCycle status Listener'
+    libraryDescription = 'add public function getPoster()'
     siteUrl = 'https://github.com/adazhdw/GzPlayer'
     gitUrl = 'https://github.com/adazhdw/GzPlayer.git'
     developerId = 'adazhdw1207'
