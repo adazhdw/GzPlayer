@@ -18,6 +18,9 @@ import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.NonNull
 import androidx.core.widget.ContentLoadingProgressBar
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
 import com.example.utiltest.widget.exo.ExoControlDispatcher
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.MediaSource
@@ -110,7 +113,8 @@ class ExoPlayerView : FrameLayout {
             override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
                 when (playbackState) {
                     Player.STATE_ENDED -> {
-                        onPauseState()
+                        pause()
+                        seekToStart()
                     }
                 }
             }
@@ -131,26 +135,21 @@ class ExoPlayerView : FrameLayout {
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 pause()
-                onPauseState()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 startPlay()
-                onPlayState()
             }
         })
         startIv.setOnClickListener {
             if (isPlaying()) {
                 pause()
-                onPauseState()
             } else {
                 startPlay()
-                onPlayState()
                 startHideControl()
             }
         }
-        mVideoViewRoot.setOnClickListener {
-
+        this.setOnClickListener {
             if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
                 showControlView(false)
             } else {
@@ -158,18 +157,25 @@ class ExoPlayerView : FrameLayout {
                 startHideControl()
             }
         }
-        onPauseState()
     }
 
-    fun setDataSource(path: String?, isAutoPlay: Boolean = false) {
+    fun setDataSource(path: String?,isAutoPlay: Boolean = false, lifecycle: Lifecycle? = null, errorListener: ((errorType: Int) -> Unit)?=null) {
         if (path.isNullOrBlank()) return
         loadingBar.visibility = View.VISIBLE
         loadingBar.show()
         mExoPlayer.setUp(context, path, isAutoPlay)
-    }
+        this.errorListener = errorListener
+        lifecycle?.addObserver(object : LifecycleObserver {
+            @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+            fun onPause() {
+                this@ExoPlayerView.pause()
+            }
 
-    fun getPoster(): ImageView {
-        return mExoPost
+            @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            fun onDestroy() {
+                this@ExoPlayerView.release()
+            }
+        })
     }
 
     private fun seekTo(progress: Long) {
@@ -177,29 +183,23 @@ class ExoPlayerView : FrameLayout {
         setVideoProgress()
     }
 
-    private fun startPlay() {
+    fun startPlay() {
         if (mExoPlayer.playbackState == Player.STATE_ENDED) {
             mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, TIME_UNSET)
         }
         mExoPost.visibility = View.GONE
+        startIv.setImageResource(R.drawable.ic_player_pause)
         mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, true)
         setVideoProgress()
         startProgressRunnable()
+        startHideControl()
     }
 
-    private fun pause() {
-        mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, false)
-        removeCallbacks(mProgressRunnable)
-    }
-
-    private fun onPlayState() {
-        startIv.setImageResource(R.drawable.ic_player_pause)
-        startProgressRunnable()
-    }
-
-    private fun onPauseState() {
+    fun pause() {
         startIv.setImageResource(R.drawable.ic_player_start)
-        removeCallbacks(mProgressRunnable)
+        mExoControlDispatcher.dispatchSetPlayWhenReady(mExoPlayer, false)
+        mHandler.removeCallbacks(mDismissRunnable)
+        mHandler.removeCallbacks(mProgressRunnable)
     }
 
     fun release() {
@@ -209,9 +209,16 @@ class ExoPlayerView : FrameLayout {
     }
 
     /**
+     * 强制把播放器重置为0进度
+     */
+    private fun seekToStart() {
+        mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, TIME_UNSET)
+    }
+
+    /**
      * 判断是否正在播放
      */
-    private fun isPlaying(): Boolean {
+    fun isPlaying(): Boolean {
         return mExoPlayer.playbackState != Player.STATE_ENDED
                 && mExoPlayer.playbackState != Player.STATE_IDLE
                 && mExoPlayer.playWhenReady
@@ -284,8 +291,8 @@ class ExoPlayerView : FrameLayout {
     ) {
         val aspectRatio =
             if (videoHeight == 0 || videoWidth == 0) 1f else videoWidth.toFloat() * pixelWidthHeightRatio / videoHeight
-        applyTextureViewRotation(mExoTextureView, unappliedRotationDegrees)
         //设置TextureView Layout 宽高
+        applyTextureViewRotation(mExoTextureView, unappliedRotationDegrees)
         mVideoViewRoot.setAspectRatio(aspectRatio)
     }
 
@@ -325,9 +332,9 @@ class ExoPlayerView : FrameLayout {
         prepare(mediaSource)
         playWhenReady = autoPlay
         if (autoPlay) {
-            onPlayState()
+            startPlay()
         } else {
-            onPauseState()
+            pause()
         }
     }
 
@@ -341,7 +348,11 @@ class ExoPlayerView : FrameLayout {
         }
     }
 
+    private var isVideoError = false
+    private var errorListener: ((errorType: Int) -> Unit)? = null
     private fun handleError(error: ExoPlaybackException) {
+        isVideoError = true
+        errorListener?.invoke(error.type)
         when (error.type) {
             ExoPlaybackException.TYPE_SOURCE -> {
                 Log.d(TAG, "ExoPlaybackException-----TYPE_SOURCE")
