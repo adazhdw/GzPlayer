@@ -20,6 +20,9 @@ import android.widget.TextView
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresPermission
 import androidx.core.widget.ContentLoadingProgressBar
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
@@ -157,12 +160,24 @@ class ExoPlayerView : FrameLayout {
     }
 
     @RequiresPermission(Manifest.permission.INTERNET)
-    fun setDataSource(path: String?, isAutoPlay: Boolean = false) {
+    fun setDataSource(path: String?, isAutoPlay: Boolean = false, lifecycle: Lifecycle? = null, errorListener: ((errorType: Int) -> Unit)?=null) {
         if (path.isNullOrBlank()) return
         loadingBar.visibility = View.VISIBLE
         loadingBar.show()
         mExoPlayer.setUp(context, path, isAutoPlay)
         isSetUped = true
+        this.errorListener = errorListener
+        lifecycle?.addObserver(object : LifecycleObserver {
+            @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+            fun onPause() {
+                this@ExoPlayerView.pausePlay()
+            }
+
+            @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            fun onDestroy() {
+                this@ExoPlayerView.release()
+            }
+        })
     }
 
     private fun startPlay() {
@@ -347,7 +362,11 @@ class ExoPlayerView : FrameLayout {
     /**
      * 处理播放器错误
      */
+    private var isVideoError = false
+    private var errorListener: ((errorType: Int) -> Unit)? = null
     private fun handleError(error: ExoPlaybackException) {
+        isVideoError = true
+        errorListener?.invoke(error.type)
         when (error.type) {
             ExoPlaybackException.TYPE_SOURCE -> {
                 Log.d(TAG, "ExoPlaybackException-----TYPE_SOURCE")
