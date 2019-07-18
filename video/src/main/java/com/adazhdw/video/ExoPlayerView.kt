@@ -204,6 +204,9 @@ class ExoPlayerView : FrameLayout {
         mHandler.removeCallbacks(mProgressRunnable)
     }
 
+    fun getPoster():ImageView{
+        return mExoPost
+    }
     private fun seekTo(progress: Long) {
         mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, progress)
         setVideoProgress()
