@@ -58,9 +58,9 @@ ext {
 
     publishedGroupId = 'com.adazhdw' // the id you want to add in "implement" line
     artifact = 'video' // = libraryName  the id you want to add in "implement" line--must be the module name in android project
-    libraryVersion = '0.2.4'
+    libraryVersion = '0.2.5'
 
-    libraryDescription = 'add video play error listener'
+    libraryDescription = 'add public function getPoster()'
     siteUrl = 'https://github.com/adazhdw/GzPlayer'
     gitUrl = 'https://github.com/adazhdw/GzPlayer.git'
     developerId = 'adazhdw1207'
