@@ -128,19 +128,20 @@ class ExoPlayerView : FrameLayout {
         mSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
-                seekTo(progress * 1000L)
+                if (!isVideoError)
+                    seekTo(progress * 1000L)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                pausePlay()
+                if (!isVideoError) pausePlay()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                startPlay()
+                if (!isVideoError) startPlay()
             }
         })
         startIv.setOnClickListener {
-            if (isPlaying()) {
+            if (!isVideoError) if (isPlaying()) {
                 pausePlay()
             } else {
                 startPlay()
@@ -148,19 +149,26 @@ class ExoPlayerView : FrameLayout {
             }
         }
         mVideoViewRoot.setOnClickListener {
-            if (isSetUped) {
-                if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
-                    showControlView(false)
-                } else {
-                    showControlView()
-                    startHideControl()
+            if (!isVideoError) {
+                if (isSetUped) {
+                    if (startIv.visibility == View.VISIBLE || bottomLayout.visibility == View.VISIBLE) {
+                        showControlView(false)
+                    } else {
+                        showControlView()
+                        startHideControl()
+                    }
                 }
             }
         }
     }
 
     @RequiresPermission(Manifest.permission.INTERNET)
-    fun setDataSource(path: String?, isAutoPlay: Boolean = false, lifecycle: Lifecycle? = null, errorListener: ((errorType: Int) -> Unit)?=null) {
+    fun setDataSource(
+        path: String?,
+        isAutoPlay: Boolean = false,
+        lifecycle: Lifecycle? = null,
+        errorListener: ((errorType: Int) -> Unit)? = null
+    ) {
         if (path.isNullOrBlank()) return
         loadingBar.visibility = View.VISIBLE
         loadingBar.show()
@@ -204,9 +212,10 @@ class ExoPlayerView : FrameLayout {
         mHandler.removeCallbacks(mProgressRunnable)
     }
 
-    fun getPoster():ImageView{
+    fun getPoster(): ImageView {
         return mExoPost
     }
+
     private fun seekTo(progress: Long) {
         mExoControlDispatcher.dispatchSeekTo(mExoPlayer, mExoPlayer.currentWindowIndex, progress)
         setVideoProgress()
@@ -370,6 +379,7 @@ class ExoPlayerView : FrameLayout {
     private fun handleError(error: ExoPlaybackException) {
         isVideoError = true
         errorListener?.invoke(error.type)
+        mSeekBar.isEnabled = false
         when (error.type) {
             ExoPlaybackException.TYPE_SOURCE -> {
                 Log.d(TAG, "ExoPlaybackException-----TYPE_SOURCE")
