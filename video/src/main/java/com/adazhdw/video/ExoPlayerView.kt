@@ -251,9 +251,11 @@ class ExoPlayerView : FrameLayout {
     private fun setVideoProgress() {
         val duration = mExoPlayer.duration
         val currentPosition = mExoPlayer.currentPosition
+        val bufferPosition = mExoPlayer.bufferedPosition
         currentTime.text = stringForTime(currentPosition)
         durationTime.text = stringForTime(duration)
         mSeekBar.progress = (currentPosition / 1000).toInt()
+        mSeekBar.secondaryProgress = (bufferPosition/1000).toInt()
     }
 
     /**

@@ -12,6 +12,17 @@
     </item>
 
     <!-- 设置进度条颜色（themeColor） -->
+    <item android:id="@android:id/secondaryProgress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="8dp" />
+                <size android:height="2dp" />
+                <solid android:color="#b3b2b2" />
+            </shape>
+        </clip>
+    </item>
+
+    <!-- 设置进度条颜色（themeColor） -->
     <item android:id="@android:id/progress">
         <clip>
             <shape android:shape="rectangle">
