@@ -160,6 +160,7 @@ class ExoPlayerView : FrameLayout {
                 }
             }
         }
+        bottomLayout.setOnClickListener {  }
     }
 
     @RequiresPermission(Manifest.permission.INTERNET)
